@@ -1,8 +1,9 @@
 const { Router } = require("express");
-const { adminModel } = require("../db");
+const { adminModel, courseModel } = require("../db");
 const bcryp = require("bcrypt");
 const { z } = require("zod");
 const jwt = require("jsonwebtoken");
+const { adminMiddleware } = require("../middileware/admin");
 
 const adminRouter = Router();
 
@@ -97,21 +98,70 @@ adminRouter.post("/signin",async (req,res) => {
     }
 });
 
-adminRouter.post("/course", (req,res) => {
-    res.json({
-        message: "signin endpoint"
-    });
+adminRouter.post("/course",adminMiddleware,async (req,res) => {
+    const adminId = req.userId;
+
+    const { title, description, price, imageUrl}  = req.body;
+
+    try {
+        const course = await courseModel.create({
+            title,
+            description,
+            price,
+            imageUrl,
+            creatorId: adminId
+        });
+        
+        res.json({
+            message: "Course created",
+            courseId: course._id
+        });
+
+    } catch(e) {
+        res.status(403).json({
+            message: "Error while Course created",
+        });
+    }
+    
 });
 
-adminRouter.put("/course", (req,res) => {
-    res.json({
-        message: "signin endpoint"
-    });
+adminRouter.put("/course",adminMiddleware, async (req,res) => {
+    const adminId = req.userId;
+    const { title, description, price, imageUrl, courseId}  = req.body;
+
+    try {
+        const course = await courseModel.updateOne({
+            _id: courseId,
+            creatorId: adminId
+        },{
+            title,
+            description,
+            price,
+            imageUrl
+        });
+        
+        res.json({
+            message: "Course Updated",
+            courseId: course._id
+        });
+
+    } catch(e) {
+        res.status(403).json({
+            message: "Error while Course created",
+        });
+    }
 });
 
-adminRouter.get("/course/bulk", (req,res) => {
+adminRouter.get("/course/bulk", adminMiddleware, async (req,res) => {
+    const adminId = req.userId;
+
+    const courses = await courseModel.find({
+        creatorId: adminId
+    });
+
     res.json({
-        message: "signin endpoint"
+        message: "courses are",
+        courses
     });
 });
 
